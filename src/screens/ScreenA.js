@@ -12,7 +12,13 @@ import {
 } from 'react-native';
 import SQLite from 'react-native-sqlite-storage';
 import {useSelector, useDispatch} from 'react-redux';
-import {setName, setAge, increaseAge, setSpeechToText} from '../redux/actions';
+import {
+  setName,
+  setAge,
+  increaseAge,
+  setSpeechToText,
+  setTextRecognition,
+} from '../redux/actions';
 import {checkPermissions} from '../utils/checkPermissions';
 
 import TestButton from '../utils/customButton';
@@ -29,25 +35,17 @@ const db = SQLite.openDatabase(
   },
 );
 
-const onTestEvent = event => {
-  console.log(event);
-};
+// const onTestEvent = event => {
+//   console.log(event);
+// };
 
-const nativeEmitter = new NativeEventEmitter(NativeModules.CalendarModule);
+// nativeEmitter.addListener('testEvent', onTestEvent);
 
-nativeEmitter.addListener('testEvent', onTestEvent);
+// const onRecognizingEvent = event => {
+//   console.log('recognizing', event);
+// };
 
-const onRecognizingEvent = event => {
-  console.log('recognizing', event);
-};
-
-nativeEmitter.addListener('recognizingEvent', onRecognizingEvent);
-
-const onRecognizedEvent = event => {
-  console.log('recognized', event);
-};
-
-nativeEmitter.addListener('recognizedEvent', onRecognizedEvent);
+// nativeEmitter.addListener('recognizingEvent', onRecognizingEvent);
 
 function ScreenA({navigation}) {
   const Users = [
@@ -57,10 +55,11 @@ function ScreenA({navigation}) {
   ];
 
   const [User, setUser] = useState('');
+  const [STTProg, setSTTProg] = useState(0);
 
   // const [Name, setName] = useState('');
   // const [Age, setAge] = useState('');
-  const {Name, Age, SpeechToTextRunning} = useSelector(
+  const {Name, Age, SpeechToTextRunning, DisplayText} = useSelector(
     state => state.userReducer,
   );
   const dispatch = useDispatch();
@@ -163,7 +162,7 @@ function ScreenA({navigation}) {
         }
       });
     } else {
-      console.warn('here comes the big show');
+      // console.warn('here comes the big show');
       CalendarModule.createCalendarEvent('testName', 'testLocation', res => {
         console.log(res);
       });
@@ -174,8 +173,8 @@ function ScreenA({navigation}) {
         return;
       }
       CalendarModule.createRecognizer(
-        '', //insert secret key here
-        '', //insert location here
+        'ba4476cc677745cfb63b36d98986f792', //insert secret key here
+        'centralindia', //insert location here
         (code, s, e) => {
           if (code === 1) {
             console.error('Recognizer init failed');
@@ -197,6 +196,21 @@ function ScreenA({navigation}) {
           return;
         }
       });
+
+      const interval = function () {
+        CalendarModule.fetchTranscript((code, str) => {
+          console.log(code);
+          if (code === 0) {
+            console.log('----->', str);
+            dispatch(setTextRecognition(str));
+            setTimeout(() => interval(), 500);
+          } else {
+            clearInterval(STTProg);
+            console.log('Stopped');
+          }
+        });
+      };
+      interval();
     }
     //update State
     dispatch(setSpeechToText(SpeechToTextRunning));
@@ -213,11 +227,14 @@ function ScreenA({navigation}) {
   };
   return (
     <View style={styles.body}>
-      <Text style={[globalStyle.CustomFont, styles.text]}>welcome {Name}</Text>
-      <Text style={[globalStyle.CustomFont, styles.text]}>
-        Your age is {Age}
-      </Text>
-      <TextInput
+      <View style={styles.header}>
+        <Text style={[globalStyle.CustomFont, styles.text]}>
+          welcome {Name}
+        </Text>
+      </View>
+      <View style={styles.main}>
+        <Text style={[globalStyle.CustomFont, styles.text]}>{DisplayText}</Text>
+        {/* <TextInput
         style={styles.input}
         placeholder="Enter your name"
         value={Name}
@@ -225,8 +242,8 @@ function ScreenA({navigation}) {
           // setName(value);
           dispatch(setName(value));
         }}
-      />
-      <TestButton
+      /> */}
+        {/* <TestButton
         title="Update"
         color="#ff7f00"
         // onPressFunction={onPressHandler}
@@ -245,14 +262,15 @@ function ScreenA({navigation}) {
         color="#f40100"
         onPressFunction={removeData}
         style={{margin: 10}}
-      />
-      <TestButton
-        title="Call Native"
-        // color={recognizing ? '#ff00ff' : '#00ff00'}
-        onPressFunction={nativeCall}
-        style={SpeechToTextRunning ? styles.purple : styles.green}
-      />
-      <Text style={styles.bodyText}>{User}</Text>
+      /> */}
+        <TestButton
+          title={SpeechToTextRunning ? 'Stop' : 'Record'}
+          // color={recognizing ? '#ff00ff' : '#00ff00'}
+          onPressFunction={nativeCall}
+          style={SpeechToTextRunning ? styles.purple : styles.green}
+        />
+      </View>
+      {/* <Text style={styles.bodyText}>{User}</Text> */}
     </View>
   );
 }
@@ -265,6 +283,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  header: {flex: 1, alignItems: 'center', justifyContent: 'center'},
+  main: {flex: 5, alignItems: 'center', justifyContent: 'center'},
   text: {
     color: '#000',
     fontSize: 35,

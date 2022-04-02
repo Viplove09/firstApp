@@ -4,6 +4,7 @@ import {
   INCREASE_AGE,
   GET_CITIES,
   SPEECH_TO_TEXT,
+  TEXT_RECOGNITION,
 } from './actions';
 
 const initialState = {
@@ -11,6 +12,7 @@ const initialState = {
   Age: 0,
   Cities: [],
   SpeechToTextRunning: false,
+  DisplayText: '',
 };
 
 function userReducer(state = initialState, action) {
@@ -25,6 +27,8 @@ function userReducer(state = initialState, action) {
       return {...state, Cities: action.payload};
     case SPEECH_TO_TEXT:
       return {...state, SpeechToTextRunning: !action.payload};
+    case TEXT_RECOGNITION:
+      return {...state, DisplayText: action.payload};
     default:
       return state;
   }

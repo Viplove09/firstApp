@@ -7,6 +7,8 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
 import java.util.Map;
 import java.util.HashMap;
+
+import android.telecom.Call;
 import android.util.Log;
 
 import com.facebook.react.modules.core.RCTNativeAppEventEmitter;
@@ -68,6 +70,19 @@ public class CalendarModule extends ReactContextBaseJavaModule {
     }
 
     private SpeechRecognizer speechRecognizer;
+    private WritableMap recognizedText;
+    private String latestText = "";
+    private int stopped = 0;
+
+    @ReactMethod
+    public void fetchTranscript(Callback successCallback){
+        successCallback.invoke(this.stopped,this.latestText);
+    }
+
+    @ReactMethod
+    public void fetchTimeStamps(Callback successCallback){
+        successCallback.invoke(this.recognizedText.toString());
+    }
 
     @ReactMethod
     public void createRecognizer(String SpeechSubscriptionKey, String SpeechRegion, Callback successCallback){
@@ -86,36 +101,39 @@ public class CalendarModule extends ReactContextBaseJavaModule {
         speechRecognizer = new SpeechRecognizer(speechConfig, audioInput);
         
         // Create map for params
-        WritableMap payload = Arguments.createMap();
+//        WritableMap payload = Arguments.createMap();
+        this.recognizedText = Arguments.createMap();
         // Put data to map
-        payload.putString("something", "definitely something");
+//        payload.putString("something", "definitely something");
         
         //Attach Event Listeners
         speechRecognizer.recognizing.addEventListener((s,e)->{
 //            Log.d("SpeechRecognizer",s);
-//            Log.d("SpeechRecognizer",e);
+//            Log.d("SpeechRecognizer",e.getResult().toString());
 //            Log.d("SpeechRecognizer",e.getResult().getOffset().toString());
 //            Log.d("SpeechRecognizer",e.getResult().getProperties().getProperty(PropertyId.SpeechServiceResponse_JsonResult));
-            Log.d("SpeechRecognizer",e.toString());
+//            Log.d("SpeechRecognizer",e.toString());
+            this.latestText = e.getResult().getText();
         });
         speechRecognizer.recognized.addEventListener((s,e)->{
 //            Log.d("SpeechRecogniser","Recognized");
             PropertyCollection properties = e.getResult().getProperties();
             String property = properties.getProperty(PropertyId.SpeechServiceResponse_JsonResult);
             String prop2 = properties.getProperty(PropertyId.SpeechServiceResponse_RequestWordLevelTimestamps);
-            Log.d("--------",property);
-            Log.d("--------",prop2);
+//            Log.d("--------",prop2);
             // Put data to map
-//            payload.putString("somethingElse", "new new new");
-//            sendEvent(this.reactContext,"recognizedEvent",s);
+//           this.recognizedText.putString("Result Json", property);
+//           sendEvent(this.reactContext,"recognizedEvent",this.recognizedText);
         });
         speechRecognizer.canceled.addEventListener((s,e)->{
             Log.d("SpeechRecogniser","Canceled");
             // Stops recognition.
+            this.stopped=1;
             speechRecognizer.stopContinuousRecognitionAsync();
         });
         speechRecognizer.sessionStopped.addEventListener((s,e)->{
             Log.d("SpeechRecogniser","stopped");
+            this.stopped=1;
             speechRecognizer.stopContinuousRecognitionAsync();
         });
         
@@ -127,7 +145,7 @@ public class CalendarModule extends ReactContextBaseJavaModule {
         if (speechRecognizer == null){
             completionCallback.invoke(1);
         }
-
+        this.stopped=0;
         speechRecognizer.startContinuousRecognitionAsync();
         completionCallback.invoke(0);
     }

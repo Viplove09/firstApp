@@ -3,6 +3,7 @@ export const SET_USER_AGE = 'SET_USER_AGE';
 export const INCREASE_AGE = 'INCREASE_AGE';
 export const GET_CITIES = 'GET_CITIES';
 export const SPEECH_TO_TEXT = 'SPEECH_TO_TEXT';
+export const TEXT_RECOGNITION = 'TEXT_RECOGNITION';
 
 const API_URL =
   'https://6231bc6405f5f4d40d827f0c.mockapi.io/react-native/redux/getcities';
@@ -57,5 +58,12 @@ export const setSpeechToText = recog => dispatch => {
   dispatch({
     type: SPEECH_TO_TEXT,
     payload: recog,
+  });
+};
+
+export const setTextRecognition = text => dispatch => {
+  dispatch({
+    type: TEXT_RECOGNITION,
+    payload: text,
   });
 };
